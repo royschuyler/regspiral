@@ -1,0 +1,54 @@
+Imagine an x,y plane with center (0,0). From center, there var n amount are straight lines skewing out divided by equal degrees and go a full 360 degrees. From center there are also n circles of different sizes spaced by {algorythm TBD}. We are going to create spirals by connecting the intersection points of {straight line 1} and {circle point a}, then {straight line 2} and {circle point b}. I want an index.html file that has slider bars that control the var n amount of lines/circles.  
+
+Here is how I want the circles sized. This is comming from a spreasheet.
+A2=100 {This will be n}
+A8=radians(90)
+A10=A8/A2
+G10=0
+G11=1
+G12=2
+{G continues this pattern all the way to G110 or 10 plus whatever A2 is}
+H10=$A$10*G10
+H11=$A$10*G11
+H12=$A$10*G12
+{H cotineus this pattern to H110 or 10 plus whatever A2 is}
+
+C2 is a variable in a slider. -2 to 3. default 1
+
+J10=1-=(SIN(H10))^$C$2
+J11=1-=(SIN(H11))^$C$2
+J12=1-=(SIN(H12))^$C$2
+{J cotineus this pattern to J110 or 10 plus whatever A2 is}
+
+I want them spaced by the J value, get it? They are closer together at the center.
+
+I want a slider bar to dictate the total degrees the spiral travels default 360. min: 45, max 3000.
+
+So, to racap:
+var n for number of straight lines. 100 - 5,000. default 2,000
+C2, lets call it var f in a slider. -2 to 3. default 1
+
+And I want a downloadable button
+
+
+I want a spiral program that forms from the intersection of a straight line from center (0,0) and a circle with center also at (0,0). I want n number of straight lines and also n number of circles. The spacing of the straight lines are of equal degrees from center. SO, if n = 100 then each line would be (360/100) + i. The spacing of the circles should be derived from the J column pattern such that circles congrigate more at the center and gradually get larger to the end. Please put allin an index.html file with var n and f as sliders. Also a slider for how many total degrees the spiral turns{min 90, max 1440, default 360}. And a downloadable button
+
+J10=1-(COS(H10))^$C$2
+J11=1-(COS(H11))^$C$2
+J12=1-(COS(H12))^$C$2
+{continues}
+
+H10=$A$10*G10
+H11=$A$10*G11
+H12=$A$10*G12
+{continues}
+
+G10=0
+G11=1
+G12=2
+{contines to Gn eg. if n = 100 then G110=100}
+
+A10=RADIANS(90)/n
+
+C2 let's call var f = {slider variable. min: 1, max 10, default: 1}
+

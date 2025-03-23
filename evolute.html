@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Evolute of an Ellipse Spiral Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin: 20px;
+      background-color: #fff;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      background: #fff;
+      display: block;
+      margin: 20px auto;
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    .control {
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Evolute of an Ellipse Spiral Generator</h1>
+  <div class="controls">
+    <!-- Slider for eccentricity (e) -->
+    <div class="control">
+      <label for="eSlider">Eccentricity (e):</label>
+      <input type="range" id="eSlider" min="0" max="0.99" step="0.01" value="0.5">
+      <span id="eValue">0.5</span>
+    </div>
+    <!-- Slider for total degrees of the curve (t) -->
+    <div class="control">
+      <label for="tSlider">Total Degrees (t):</label>
+      <input type="range" id="tSlider" min="90" max="2000" step="1" value="360">
+      <span id="tValue">360</span>
+    </div>
+  </div>
+  
+  <canvas id="canvas" width="600" height="600"></canvas>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Slider elements
+    const eSlider = document.getElementById('eSlider');
+    const tSlider = document.getElementById('tSlider');
+    const eValueSpan = document.getElementById('eValue');
+    const tValueSpan = document.getElementById('tValue');
+
+    function draw() {
+      // Read slider values
+      const e = parseFloat(eSlider.value);
+      const tDeg = parseFloat(tSlider.value);
+      eValueSpan.textContent = e;
+      tValueSpan.textContent = tDeg;
+      
+      // Define the ellipse.
+      const a = 150; // Fixed semi-major axis.
+      const b = a * Math.sqrt(1 - e * e);
+      
+      // The evolute formulas:
+      // X(θ)= (a^2-b^2)/a * cos^3θ = a e^2 cos^3θ
+      // Y(θ)= - (a^2-b^2)/b * sin^3θ = - (a e^2 / sqrt(1-e^2)) sin^3θ
+      //
+      // Set the parameter range: convert total degrees to radians.
+      const thetaMax = tDeg * Math.PI / 180;
+      const numPoints = 1000;
+      const dTheta = thetaMax / numPoints;
+      const points = [];
+      
+      for (let i = 0; i <= numPoints; i++) {
+        const theta = i * dTheta;
+        const x = a * e * e * Math.pow(Math.cos(theta), 3);
+        const y = - (a * e * e / Math.sqrt(1 - e * e)) * Math.pow(Math.sin(theta), 3);
+        points.push({ x, y });
+      }
+      
+      // Clear the canvas and center the drawing.
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      
+      // Draw the evolute curve.
+      ctx.beginPath();
+      if (points.length > 0) {
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+          ctx.lineTo(points[i].x, points[i].y);
+        }
+      }
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+    
+    // Redraw when sliders are adjusted.
+    eSlider.addEventListener('input', draw);
+    tSlider.addEventListener('input', draw);
+    
+    // Initial draw.
+    draw();
+  </script>
+</body>
+</html>
