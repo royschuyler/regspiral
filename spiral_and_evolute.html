@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spiral and Evolute Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #fff;
+      text-align: center;
+      margin: 20px;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      background: #fff;
+      display: block;
+      margin: 20px auto;
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    .control {
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Spiral and Evolute Generator</h1>
+  <div class="controls">
+    <div class="control">
+      <label for="tSlider">Total Degrees (t):</label>
+      <input type="range" id="tSlider" min="10" max="2000" value="450">
+      <span id="tValue">450</span>
+    </div>
+    <div class="control">
+      <label for="spacingExpSlider">Spacing Exponent:</label>
+      <input type="range" id="spacingExpSlider" min="1" max="20" step="0.25" value="1">
+      <span id="spacingExpValue">1</span>
+    </div>
+    <div class="control">
+      <button id="downloadBtn">Download Image</button>
+    </div>
+  </div>
+  
+  <canvas id="canvas" width="600" height="600"></canvas>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Fixed parameters.
+    const n = 10000; // Grid: fixed number of radial lines.
+    const m = 10000; // Fixed number of circles (sample points for spiral).
+    
+    // Slider elements.
+    const tSlider = document.getElementById('tSlider');
+    const spacingExpSlider = document.getElementById('spacingExpSlider');
+    const tValue = document.getElementById('tValue');
+    const spacingExpValue = document.getElementById('spacingExpValue');
+    const downloadBtn = document.getElementById('downloadBtn');
+    
+    function draw() {
+      const t = parseFloat(tSlider.value);  // total degrees
+      const spacingExp = parseFloat(spacingExpSlider.value);
+      
+      tValue.textContent = t;
+      spacingExpValue.textContent = spacingExp;
+      
+      // Set maximum radius to 90% of half the canvas width.
+      const maxR = (canvas.width / 2) * 0.9;
+      
+      // Clear canvas and fill white.
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      
+      // Convert total degrees to radians.
+      const tRad = t * Math.PI / 180;
+      const gridAngleSpacing = 2 * Math.PI / n;
+      
+      // Build two arrays:
+      // 1. spiralPoints (snapped for display)
+      // 2. idealSpiralPoints (continuous ideal spiral, for evolute calculation)
+      let spiralPoints = [];
+      let idealSpiralPoints = [];
+      for (let i = 0; i <= m; i++) {
+        // Compute radius using nonlinear spacing:
+        const r = Math.pow(i / m, spacingExp) * maxR;
+        // Ideal continuous spiral angle:
+        const thetaCont = (i / m) * tRad;
+        // Ideal point (unsnapped)
+        const xIdeal = r * Math.cos(thetaCont);
+        const yIdeal = r * Math.sin(thetaCont);
+        idealSpiralPoints.push({ x: xIdeal, y: yIdeal });
+        
+        // For the displayed spiral, snap thetaCont to the nearest grid angle.
+        const k = Math.round(thetaCont / gridAngleSpacing);
+        const snappedAngle = k * gridAngleSpacing;
+        const xSnap = r * Math.cos(snappedAngle);
+        const ySnap = r * Math.sin(snappedAngle);
+        spiralPoints.push({ x: xSnap, y: ySnap });
+      }
+      
+      // Draw the displayed spiral (thin black line).
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      spiralPoints.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+      
+      // Compute evolute from the ideal continuous spiral.
+      // We'll use central differences. Let dt = 1/m.
+      const dt = 1 / m;
+      let evolutePoints = [];
+      for (let i = 1; i < idealSpiralPoints.length - 1; i++) {
+        const A = idealSpiralPoints[i - 1];
+        const B = idealSpiralPoints[i];
+        const C = idealSpiralPoints[i + 1];
+        // Central differences for derivatives.
+        const xPrime = (C.x - A.x) / (2 * dt);
+        const yPrime = (C.y - A.y) / (2 * dt);
+        const xDoublePrime = (C.x - 2 * B.x + A.x) / (dt * dt);
+        const yDoublePrime = (C.y - 2 * B.y + A.y) / (dt * dt);
+        const denom = xPrime * yDoublePrime - yPrime * xDoublePrime;
+        if (Math.abs(denom) < 1e-6) continue;
+        const factor = (xPrime * xPrime + yPrime * yPrime) / denom;
+        const evoluteX = B.x - factor * yPrime;
+        const evoluteY = B.y + factor * xPrime;
+        evolutePoints.push({ x: evoluteX, y: evoluteY });
+      }
+      
+      ctx.strokeStyle = '#0000FF';
+      // Draw the evolute as a continuous thin line.
+      if (evolutePoints.length > 0) {
+        ctx.beginPath();
+        evolutePoints.forEach((pt, idx) => {
+          if (idx === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+      }
+      
+      // Draw overlay text in top-left corner.
+      ctx.font = "12px sans-serif";
+      ctx.fillStyle = "#000";
+      const overlayText = "Degrees: " + t + "  Spacing Exp: " + spacingExp;
+      ctx.fillText(overlayText, -canvas.width / 2 + 5, -canvas.height / 2 + 15);
+      
+      ctx.restore();
+    }
+    
+    tSlider.addEventListener('input', draw);
+    spacingExpSlider.addEventListener('input', draw);
+    
+    downloadBtn.addEventListener('click', () => {
+      const spacingExp = spacingExpSlider.value;
+      const link = document.createElement('a');
+      link.download = 'spacing_exponent_' + spacingExp + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+    
+    draw();
+  </script>
+</body>
+</html>

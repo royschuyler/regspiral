@@ -7,59 +7,66 @@
     body {
       font-family: sans-serif;
       background: #fff;
-      text-align: center;
       margin: 20px;
+    }
+    .container {
+      display: flex;
+      align-items: flex-start;
+    }
+    .controls {
+      flex: 0 0 250px;
+      margin-right: 20px;
+    }
+    .control {
+      margin: 10px 0;
+    }
+    .canvas-container {
+      flex-grow: 1;
     }
     canvas {
       border: 1px solid #ccc;
       background: #fff;
       display: block;
-      margin: 20px auto;
-    }
-    .controls {
-      margin-bottom: 20px;
-    }
-    .control {
-      margin: 10px;
-    }
-    .overlay-info {
-      font-size: 12px;
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      color: #000;
     }
   </style>
 </head>
 <body>
   <h1>Spiral, Evolute, and Circles Generator</h1>
-  <div class="controls">
-    <div class="control">
-      <label for="tSlider">Total Degrees (t):</label>
-      <input type="range" id="tSlider" min="10" max="2000" value="450">
-      <span id="tValue">450</span>
+  <div class="container">
+    <div class="controls">
+      <div class="control">
+        <label for="tSlider">Total Degrees (t):</label><br>
+        <input type="range" id="tSlider" min="10" max="2000" value="450">
+        <span id="tValue">450</span>
+      </div>
+      <div class="control">
+        <label for="spacingExpSlider">Spacing Exponent (f):</label><br>
+        <input type="range" id="spacingExpSlider" min="1" max="20" step="0.25" value="2.75">
+        <span id="spacingExpValue">2.75</span>
+      </div>
+      <div class="control">
+        <label for="sizeSlider">Initial Circle Size (s):</label><br>
+        <input type="range" id="sizeSlider" min="1" max="8" step="1" value="4">
+        <span id="sizeValue">4</span>
+      </div>
+      <div class="control">
+        <label for="rateSlider">Growth Rate (r):</label><br>
+        <input type="range" id="rateSlider" min="1" max="1.4" step="0.01" value="1.2">
+        <span id="rateValue">1.2</span>
+      </div>
+      <div class="control">
+        <label for="fracSlider">Intersection Fraction (X):</label><br>
+        <input type="range" id="fracSlider" min="0" max="2" step="0.02" value="1">
+        <span id="fracValue">1</span>
+      </div>
+      <div class="control">
+        <button id="downloadBtn">Download Image</button>
+      </div>
     </div>
-    <div class="control">
-      <label for="spacingExpSlider">Spacing Exponent:</label>
-      <input type="range" id="spacingExpSlider" min="1" max="20" step="0.25" value="1">
-      <span id="spacingExpValue">1</span>
-    </div>
-    <div class="control">
-      <label for="sizeSlider">Initial Circle Size (s):</label>
-      <input type="range" id="sizeSlider" min="1" max="200" step="1" value="20">
-      <span id="sizeValue">20</span>
-    </div>
-    <div class="control">
-      <label for="rateSlider">Growth Rate (r):</label>
-      <input type="range" id="rateSlider" min="1" max="5" step="0.1" value="1.5">
-      <span id="rateValue">1.5</span>
-    </div>
-    <div class="control">
-      <button id="downloadBtn">Download Image</button>
+    <div class="canvas-container">
+      <canvas id="canvas" width="600" height="600"></canvas>
     </div>
   </div>
-  
-  <canvas id="canvas" width="600" height="600"></canvas>
   
   <script>
     const canvas = document.getElementById('canvas');
@@ -74,42 +81,41 @@
     const spacingExpSlider = document.getElementById('spacingExpSlider');
     const sizeSlider = document.getElementById('sizeSlider');
     const rateSlider = document.getElementById('rateSlider');
+    const fracSlider = document.getElementById('fracSlider');
     
     const tValue = document.getElementById('tValue');
     const spacingExpValue = document.getElementById('spacingExpValue');
     const sizeValue = document.getElementById('sizeValue');
     const rateValue = document.getElementById('rateValue');
+    const fracValue = document.getElementById('fracValue');
     
     const downloadBtn = document.getElementById('downloadBtn');
     
-    // Helper: linear distance between two points.
+    // Helper: Euclidean distance.
     function distance(p, q) {
-      return Math.sqrt((p.x - q.x)**2 + (p.y - q.y)**2);
+      return Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
     }
     
     // Compute cumulative arc lengths for an array of points.
     function computeArcLengths(points) {
       let arc = [0];
       for (let i = 1; i < points.length; i++) {
-        arc.push(arc[i-1] + distance(points[i-1], points[i]));
+        arc.push(arc[i - 1] + distance(points[i - 1], points[i]));
       }
       return arc;
     }
     
-    // Given an array of points and corresponding arc lengths,
-    // find the point along the curve starting at index startIndex
-    // where the arc length difference equals target. (Linear interpolation.)
+    // Linear interpolation: find point at a given arc-length difference.
     function findPointAtDistance(points, arc, startIndex, target) {
       const startArc = arc[startIndex];
       for (let i = startIndex + 1; i < arc.length; i++) {
         if (arc[i] - startArc >= target) {
-          // interpolate between points[i-1] and points[i].
-          const d = arc[i] - arc[i-1];
-          const remain = target - (arc[i-1] - startArc);
+          const d = arc[i] - arc[i - 1];
+          const remain = target - (arc[i - 1] - startArc);
           const t = remain / d;
           return {
-            x: points[i-1].x + t * (points[i].x - points[i-1].x),
-            y: points[i-1].y + t * (points[i].y - points[i-1].y),
+            x: points[i - 1].x + t * (points[i].x - points[i - 1].x),
+            y: points[i - 1].y + t * (points[i].y - points[i - 1].y),
             index: i
           };
         }
@@ -118,21 +124,23 @@
     }
     
     function draw() {
-      // Read slider values.
-      const t = parseFloat(tSlider.value);  // total degrees
-      const spacingExp = parseFloat(spacingExpSlider.value);
-      const s = parseFloat(sizeSlider.value); // initial circle size (radius in pixels)
-      const rRate = parseFloat(rateSlider.value); // growth rate
+      const t = parseFloat(tSlider.value);              // Total degrees.
+      const spacingExp = parseFloat(spacingExpSlider.value); // Spacing exponent (f).
+      const s = parseFloat(sizeSlider.value);             // Initial circle size (s).
+      const rRate = parseFloat(rateSlider.value);           // Growth rate (r).
+      const frac = parseFloat(fracSlider.value);            // Intersection fraction (X).
       
+      // Update slider displays.
       tValue.textContent = t;
       spacingExpValue.textContent = spacingExp;
       sizeValue.textContent = s;
       rateValue.textContent = rRate;
+      fracValue.textContent = frac;
       
-      // Set maximum radius for the spiral.
+      // Set maximum radius to 90% of half the canvas width.
       const maxR = (canvas.width / 2) * 0.9;
       
-      // Clear canvas and fill with white.
+      // Clear canvas and fill white.
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -144,22 +152,19 @@
       const tRad = t * Math.PI / 180;
       const gridAngleSpacing = 2 * Math.PI / n;
       
-      // Build two arrays:
-      // idealSpiralPoints: continuous ideal spiral points (non-snapped).
+      // Build arrays:
+      // idealSpiralPoints: continuous spiral (unsnapped, for calculations).
       // spiralPoints: displayed spiral (snapped to grid angles).
       let idealSpiralPoints = [];
       let spiralPoints = [];
       for (let i = 0; i <= m; i++) {
         const fraction = i / m;
-        // Nonlinear radius spacing.
         const rad = Math.pow(fraction, spacingExp) * maxR;
         const thetaCont = fraction * tRad;
-        // Ideal (continuous) point.
         const xIdeal = rad * Math.cos(thetaCont);
         const yIdeal = rad * Math.sin(thetaCont);
         idealSpiralPoints.push({ x: xIdeal, y: yIdeal });
         
-        // Snapped point.
         const k = Math.round(thetaCont / gridAngleSpacing);
         const snappedAngle = k * gridAngleSpacing;
         const xSnap = rad * Math.cos(snappedAngle);
@@ -167,7 +172,7 @@
         spiralPoints.push({ x: xSnap, y: ySnap });
       }
       
-      // Draw the displayed spiral as a thin black line.
+      // Draw the displayed spiral (thin black line).
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 0.5;
       ctx.beginPath();
@@ -177,33 +182,25 @@
       });
       ctx.stroke();
       
-      // (Evolute drawing code remains as before, if desired.)
-      // For brevity, we leave out evolute drawing in this version.
+      // Compute cumulative arc lengths along the ideal spiral.
+      const arcLengths = computeArcLengths(idealSpiralPoints);
       
-      // --- Compute and draw the series of circles along the ideal spiral ---
-      // We want to place circles along the ideal spiral such that:
-      //   - The first circle has center at idealSpiralPoints[0] and radius s.
-      //   - For each subsequent circle i (i>=1), its radius is s * (rRate)^i.
-      //     And its center is chosen along the ideal spiral at arc length equal to that circle's radius from the previous circle's center.
-      let arcLengths = computeArcLengths(idealSpiralPoints);
+      // Compute circle centers along the ideal spiral.
       let circleCenters = [];
-      // Start with the first circle at index 0.
       circleCenters.push({ point: idealSpiralPoints[0], index: 0 });
       let currentIndex = 0;
       let iCircle = 1;
       while (true) {
-        const targetDistance = s * Math.pow(rRate, iCircle); // radius for circle i.
+        const targetDistance = s * Math.pow(rRate, iCircle) * frac;
         const next = findPointAtDistance(idealSpiralPoints, arcLengths, currentIndex, targetDistance);
         if (!next) break;
         circleCenters.push({ point: { x: next.x, y: next.y }, index: next.index });
         currentIndex = next.index;
         iCircle++;
-        // Stop if we run off the sampled spiral.
         if (currentIndex >= idealSpiralPoints.length - 1) break;
       }
       
-      // Draw these circles.
-      // We'll draw them in red (thin stroke) so they stand out.
+      // Draw the circles (red outlines).
       ctx.strokeStyle = '#FF0000';
       ctx.lineWidth = 0.5;
       circleCenters.forEach((c, idx) => {
@@ -213,19 +210,51 @@
         ctx.stroke();
       });
       
+      // Now, draw a small black tick mark at each circle center.
+      // For each circle center (except first and last), compute tangent direction
+      // using the ideal spiral derivative via central differences, then draw a short line perpendicular.
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      circleCenters.forEach(c => {
+        if (c.index <= 0 || c.index >= idealSpiralPoints.length - 1) return;
+        const A = idealSpiralPoints[c.index - 1];
+        const B = idealSpiralPoints[c.index];
+        const C = idealSpiralPoints[c.index + 1];
+        let tangentX = (C.x - A.x) / 2;
+        let tangentY = (C.y - A.y) / 2;
+        const len = Math.sqrt(tangentX * tangentX + tangentY * tangentY);
+        if (len === 0) return;
+        tangentX /= len;
+        tangentY /= len;
+        // Perpendicular (normal) vector.
+        const normalX = -tangentY;
+        const normalY = tangentX;
+        const tickHalf = 2; // Half-length of tick mark (total length 4 pixels).
+        const startX = c.point.x - tickHalf * normalX;
+        const startY = c.point.y - tickHalf * normalY;
+        const endX = c.point.x + tickHalf * normalX;
+        const endY = c.point.y + tickHalf * normalY;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+      });
+      
       // Draw overlay text in the top-left corner.
       ctx.font = "12px sans-serif";
       ctx.fillStyle = "#000";
-      const overlayText = "Degrees: " + t + "  Spacing Exp: " + spacingExp + "  s: " + s + "  r: " + rRate;
+      const overlayText = "Degrees: " + t + "  Spacing Exp: " + spacingExp + "  s: " + s + "  r: " + rRate + "  X: " + frac;
       ctx.fillText(overlayText, -canvas.width / 2 + 5, -canvas.height / 2 + 15);
       
       ctx.restore();
     }
     
+    // Attach event listeners.
     tSlider.addEventListener('input', draw);
     spacingExpSlider.addEventListener('input', draw);
     sizeSlider.addEventListener('input', draw);
     rateSlider.addEventListener('input', draw);
+    fracSlider.addEventListener('input', draw);
     
     downloadBtn.addEventListener('click', () => {
       const spacingExp = spacingExpSlider.value;
