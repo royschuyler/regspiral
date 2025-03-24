@@ -49,8 +49,8 @@
     const ctx = canvas.getContext('2d');
     
     // Fixed parameters.
-    const n = 1000; // Grid: fixed number of radial lines.
-    const m = 1000; // Fixed number of circles (sample points for spiral).
+    const n = 10000; // Grid: fixed number of radial lines.
+    const m = 10000; // Fixed number of circles (sample points for spiral).
     
     // Slider elements.
     const tSlider = document.getElementById('tSlider');
@@ -135,6 +135,7 @@
         evolutePoints.push({ x: evoluteX, y: evoluteY });
       }
       
+      ctx.strokeStyle = '#0000FF';
       // Draw the evolute as a continuous thin line.
       if (evolutePoints.length > 0) {
         ctx.beginPath();
