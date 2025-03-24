@@ -46,7 +46,7 @@
       </div>
       <div class="control">
         <label for="sizeSlider">Initial Circle Size (s):</label><br>
-        <input type="range" id="sizeSlider" min="1" max="8" step=".1" value="2">
+        <input type="range" id="sizeSlider" min="1" max="8" step=".1" value="4">
         <span id="sizeValue">4</span>
       </div>
       <div class="control">
@@ -110,7 +110,9 @@
     
     function getSelectedMode() {
       for (const radio of modeRadios) {
-        if (radio.checked) return radio.value;
+        if (radio.checked) {
+          return radio.value;
+        }
       }
       return "layered";
     }
@@ -120,7 +122,7 @@
       return Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
     }
     
-    // Compute cumulative arc lengths for an array of points.
+    // Compute cumulative arc lengths.
     function computeArcLengths(points) {
       let arc = [0];
       for (let i = 1; i < points.length; i++) {
@@ -129,7 +131,7 @@
       return arc;
     }
     
-    // Linear interpolation: find a point at a given arc-length difference.
+    // Linear interpolation: find point at a given arc-length difference.
     function findPointAtDistance(points, arc, startIndex, target) {
       const startArc = arc[startIndex];
       for (let i = startIndex + 1; i < arc.length; i++) {
@@ -148,13 +150,13 @@
     }
     
     function draw() {
-      const t = parseFloat(tSlider.value);                     // Total degrees.
-      const spacingExp = parseFloat(spacingExpSlider.value);       // Spacing exponent.
-      const s = parseFloat(sizeSlider.value);                    // Initial circle size.
-      const rRate = parseFloat(rateSlider.value);                // Base growth rate.
-      const rateOfRate = parseFloat(rateOfRateSlider.value);       // Rate of the rate.
-      const frac = parseFloat(fracSlider.value);                 // Intersection fraction.
-      const mode = getSelectedMode();                            // "layered", "full", or "backwards".
+      const t = parseFloat(tSlider.value);                   // Total degrees.
+      const spacingExp = parseFloat(spacingExpSlider.value);     // Spacing exponent.
+      const s = parseFloat(sizeSlider.value);                  // Initial circle size.
+      const rRate = parseFloat(rateSlider.value);              // Base growth rate.
+      const rateOfRate = parseFloat(rateOfRateSlider.value);     // Rate of the rate.
+      const frac = parseFloat(fracSlider.value);               // Intersection fraction.
+      const mode = getSelectedMode();                          // "layered", "full", or "backwards".
       
       // Update slider displays.
       tValue.textContent = t;
@@ -167,7 +169,7 @@
       // Maximum spiral radius.
       const maxR = (canvas.width / 2) * 0.9;
       
-      // Clear canvas and fill white.
+      // Clear canvas and fill with white.
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -179,7 +181,7 @@
       const gridAngleSpacing = 2 * Math.PI / n;
       
       // Build arrays:
-      // idealSpiralPoints: continuous (unsnapped) spiral for calculations.
+      // idealSpiralPoints: continuous (unsnapped) spiral (for arc-length computations).
       // spiralPoints: displayed spiral (snapped to grid angles).
       let idealSpiralPoints = [];
       let spiralPoints = [];
@@ -198,7 +200,7 @@
         spiralPoints.push({ x: xSnap, y: ySnap });
       }
       
-      // Draw the spiral (thin black line).
+      // Draw the displayed spiral as a thin black line.
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 0.5;
       ctx.beginPath();
@@ -219,7 +221,7 @@
       while (true) {
         // Effective multiplier for circle i:
         // For circle 0: multiplier = 1.
-        // For circle i (i>=1): multiplier = (rRate)^(i) * (rateOfRate)^(i - 1).
+        // For circle i (i>=1): multiplier = (rRate)^(i) * (rateOfRate)^(i-1)
         const multiplier = Math.pow(rRate, iCircle) * Math.pow(rateOfRate, iCircle - 1);
         const targetDistance = s * multiplier * frac;
         const next = findPointAtDistance(idealSpiralPoints, arcLengths, currentIndex, targetDistance);
@@ -230,8 +232,9 @@
         if (currentIndex >= idealSpiralPoints.length - 1) break;
       }
       
-      // Draw circles based on selected mode.
+      // Draw circles based on the selected mode.
       if (mode === "layered") {
+        // Draw layered: fill white then black outline in order.
         ctx.fillStyle = '#fff';
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 0.5;
@@ -244,6 +247,7 @@
           ctx.stroke();
         });
       } else if (mode === "full") {
+        // Draw full circles (only outlines).
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 0.5;
         circleCenters.forEach((c, idx) => {
@@ -254,6 +258,7 @@
           ctx.stroke();
         });
       } else if (mode === "backwards") {
+        // Draw circles in reverse order.
         ctx.fillStyle = '#fff';
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 0.5;
@@ -268,7 +273,7 @@
         }
       }
       
-      // Draw tick marks at each circle center.
+      // Draw a small black tick mark at each circle center.
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 1;
       circleCenters.forEach(c => {
@@ -295,7 +300,7 @@
         ctx.stroke();
       });
       
-      // Re-plot the spiral on top so it's visible.
+      // Re-plot the spiral on top.
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 0.5;
       ctx.beginPath();
@@ -304,38 +309,6 @@
         else ctx.lineTo(pt.x, pt.y);
       });
       ctx.stroke();
-      
-      // Now, compute the evolute from the ideal continuous spiral.
-      // Use central differences with dt = 1/m.
-      const dt = 1 / m;
-      let evolutePoints = [];
-      for (let i = 1; i < idealSpiralPoints.length - 1; i++) {
-        const A = idealSpiralPoints[i - 1];
-        const B = idealSpiralPoints[i];
-        const C = idealSpiralPoints[i + 1];
-        const xPrime = (C.x - A.x) / (2 * dt);
-        const yPrime = (C.y - A.y) / (2 * dt);
-        const xDoublePrime = (C.x - 2 * B.x + A.x) / (dt * dt);
-        const yDoublePrime = (C.y - 2 * B.y + A.y) / (dt * dt);
-        const denom = xPrime * yDoublePrime - yPrime * xDoublePrime;
-        if (Math.abs(denom) < 1e-6) continue;
-        const factor = (xPrime * xPrime + yPrime * yPrime) / denom;
-        const evoluteX = B.x - factor * yPrime;
-        const evoluteY = B.y + factor * xPrime;
-        evolutePoints.push({ x: evoluteX, y: evoluteY });
-      }
-      
-      // Plot the evolute last so it's visible.
-      ctx.strokeStyle = '#0000FF';
-      ctx.lineWidth = 0.5;
-      if (evolutePoints.length > 0) {
-        ctx.beginPath();
-        evolutePoints.forEach((pt, idx) => {
-          if (idx === 0) ctx.moveTo(pt.x, pt.y);
-          else ctx.lineTo(pt.x, pt.y);
-        });
-        ctx.stroke();
-      }
       
       // Draw overlay text.
       ctx.font = "12px sans-serif";
