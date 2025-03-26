@@ -3,3 +3,18 @@ Imagine an x,y plane with center (0,0). From center, there var n amount are stra
 n. min: 10, max: 1,000, default: 100
 m. min: 10, max: 1,000, default: 100
 t. min: 10, max: 2,000, default: 360
+
+
+
+Now imagine a a circle drawn where the spiral starts with it's center at the start of the spiral and it's size (var s, slider variable). Then imagine the "next circle" is drawn with it's center on the spiral and it's size (s*r s id for size and r is for rate eg. rate of size change), and the "next circle" with center on the spiral intersects with the circle before it at it's center.
+
+    <div class="control">
+      <label for="sizeSlider">Initial Circle Size (s):</label>
+      <input type="range" id="sizeSlider" min="1" max="8" step="1" value="4">
+      <span id="sizeValue">20</span>
+    </div>
+    <div class="control">
+      <label for="rateSlider">Growth Rate (r):</label>
+      <input type="range" id="rateSlider" min="1" max="1.4" step="0.02" value="1.2">
+      <span id="rateValue">1.5</span>
+    </div>

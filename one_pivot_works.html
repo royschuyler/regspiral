@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spiral, Evolute, and Circles Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #fff;
+      margin: 20px;
+    }
+    .container {
+      display: flex;
+      align-items: flex-start;
+    }
+    .controls {
+      flex: 0 0 250px;
+      margin-right: 20px;
+    }
+    .control {
+      margin: 10px 0;
+    }
+    .canvas-container {
+      flex-grow: 1;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      background: #fff;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>Spiral, Evolute, and Circles Generator</h1>
+  <div class="container">
+    <div class="controls">
+      <div class="control">
+        <label for="tSlider">Total Degrees (t):</label><br>
+        <input type="range" id="tSlider" min="10" max="2000" value="450">
+        <span id="tValue">450</span>
+      </div>
+      <div class="control">
+        <label for="spacingExpSlider">Spacing Exponent (f):</label><br>
+        <input type="range" id="spacingExpSlider" min="1" max="20" step="0.25" value="2.75">
+        <span id="spacingExpValue">2.75</span>
+      </div>
+      <div class="control">
+        <label for="sizeSlider">Initial Circle Size (s):</label><br>
+        <input type="range" id="sizeSlider" min="1" max="8" step=".1" value="2">
+        <span id="sizeValue">4</span>
+      </div>
+      <div class="control">
+        <label for="rateSlider">Growth Rate (r):</label><br>
+        <input type="range" id="rateSlider" min="1" max="1.4" step="0.01" value="1.2">
+        <span id="rateValue">1.2</span>
+      </div>
+      <div class="control">
+        <label for="rateOfRateSlider">Rate of Rate (d):</label><br>
+        <input type="range" id="rateOfRateSlider" min="0.1" max="2" step="0.01" value="1">
+        <span id="rateOfRateValue">1</span>
+      </div>
+      <div class="control">
+        <label for="fracSlider">Intersection Fraction (X):</label><br>
+        <input type="range" id="fracSlider" min="0" max="2" step="0.02" value="0.86">
+        <span id="fracValue">0.86</span>
+      </div>
+      <div class="control">
+        <label>Circle Display Mode:</label><br>
+        <input type="radio" name="modeRadio" id="modeLayered" value="layered" checked>
+        <label for="modeLayered">Layered</label><br>
+        <input type="radio" name="modeRadio" id="modeFull" value="full">
+        <label for="modeFull">Full circles</label><br>
+        <input type="radio" name="modeRadio" id="modeBackwards" value="backwards">
+        <label for="modeBackwards">Backwards</label>
+      </div>
+      <!-- New Pivot Controls -->
+      <div class="control">
+        <label for="pivotAngleSlider">Pivot Angle (°):</label><br>
+        <input type="range" id="pivotAngleSlider" min="-180" max="180" step="1" value="0">
+        <span id="pivotAngleValue">0</span>
+      </div>
+      <div class="control">
+        <label for="pivotStartSlider">Pivot Start Circle (index, starting at 1):</label><br>
+        <input type="range" id="pivotStartSlider" min="1" max="100" step="1" value="1">
+        <span id="pivotStartValue">1</span>
+      </div>
+      <div class="control">
+        <button id="downloadBtn">Download Image</button>
+      </div>
+    </div>
+    <div class="canvas-container">
+      <canvas id="canvas" width="600" height="600"></canvas>
+    </div>
+  </div>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Fixed grid parameters.
+    const n = 1000; // Number of radial grid lines.
+    const m = 1000; // Number of sample points along the spiral.
+    
+    // Slider and control elements.
+    const tSlider = document.getElementById('tSlider');
+    const spacingExpSlider = document.getElementById('spacingExpSlider');
+    const sizeSlider = document.getElementById('sizeSlider');
+    const rateSlider = document.getElementById('rateSlider');
+    const rateOfRateSlider = document.getElementById('rateOfRateSlider');
+    const fracSlider = document.getElementById('fracSlider');
+    const modeRadios = document.getElementsByName('modeRadio');
+    
+    const tValue = document.getElementById('tValue');
+    const spacingExpValue = document.getElementById('spacingExpValue');
+    const sizeValue = document.getElementById('sizeValue');
+    const rateValue = document.getElementById('rateValue');
+    const rateOfRateValue = document.getElementById('rateOfRateValue');
+    const fracValue = document.getElementById('fracValue');
+    
+    // New Pivot slider elements.
+    const pivotAngleSlider = document.getElementById('pivotAngleSlider');
+    const pivotStartSlider = document.getElementById('pivotStartSlider');
+    const pivotAngleValue = document.getElementById('pivotAngleValue');
+    const pivotStartValue = document.getElementById('pivotStartValue');
+    
+    const downloadBtn = document.getElementById('downloadBtn');
+    
+    function getSelectedMode() {
+      for (const radio of modeRadios) {
+        if (radio.checked) return radio.value;
+      }
+      return "layered";
+    }
+    
+    // Helper: Euclidean distance.
+    function distance(p, q) {
+      return Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
+    }
+    
+    // Compute cumulative arc lengths for an array of points.
+    function computeArcLengths(points) {
+      let arc = [0];
+      for (let i = 1; i < points.length; i++) {
+        arc.push(arc[i - 1] + distance(points[i - 1], points[i]));
+      }
+      return arc;
+    }
+    
+    // Linear interpolation: find a point at a given arc-length difference.
+    function findPointAtDistance(points, arc, startIndex, target) {
+      const startArc = arc[startIndex];
+      for (let i = startIndex + 1; i < arc.length; i++) {
+        if (arc[i] - startArc >= target) {
+          const d = arc[i] - arc[i - 1];
+          const remain = target - (arc[i - 1] - startArc);
+          const t = remain / d;
+          return {
+            x: points[i - 1].x + t * (points[i].x - points[i - 1].x),
+            y: points[i - 1].y + t * (points[i].y - points[i - 1].y),
+            index: i
+          };
+        }
+      }
+      return null;
+    }
+    
+    function draw() {
+      const t = parseFloat(tSlider.value);                     // Total degrees.
+      const spacingExp = parseFloat(spacingExpSlider.value);       // Spacing exponent.
+      const s = parseFloat(sizeSlider.value);                    // Initial circle size.
+      const rRate = parseFloat(rateSlider.value);                // Base growth rate.
+      const rateOfRate = parseFloat(rateOfRateSlider.value);       // Rate of the rate.
+      const frac = parseFloat(fracSlider.value);                 // Intersection fraction.
+      const mode = getSelectedMode();                            // "layered", "full", or "backwards".
+      
+      // New pivot values.
+      const pivotAngleDeg = parseFloat(pivotAngleSlider.value);
+      const pivotStartIndex = parseInt(pivotStartSlider.value);
+      
+      // Update slider displays.
+      tValue.textContent = t;
+      spacingExpValue.textContent = spacingExp;
+      sizeValue.textContent = s;
+      rateValue.textContent = rRate;
+      rateOfRateValue.textContent = rateOfRate;
+      fracValue.textContent = frac;
+      pivotAngleValue.textContent = pivotAngleDeg;
+      pivotStartValue.textContent = pivotStartIndex;
+      
+      // Maximum spiral radius.
+      const maxR = (canvas.width / 2) * 0.9;
+      
+      // Clear canvas and fill white.
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      
+      const tRad = t * Math.PI / 180;
+      const gridAngleSpacing = 2 * Math.PI / n;
+      
+      // Build arrays:
+      // idealSpiralPoints: continuous (unsnapped) spiral for calculations.
+      // spiralPoints: displayed spiral (snapped to grid angles).
+      let idealSpiralPoints = [];
+      let spiralPoints = [];
+      for (let i = 0; i <= m; i++) {
+        const fraction = i / m;
+        const rad = Math.pow(fraction, spacingExp) * maxR;
+        const thetaCont = fraction * tRad;
+        const xIdeal = rad * Math.cos(thetaCont);
+        const yIdeal = rad * Math.sin(thetaCont);
+        idealSpiralPoints.push({ x: xIdeal, y: yIdeal });
+        
+        const k = Math.round(thetaCont / gridAngleSpacing);
+        const snappedAngle = k * gridAngleSpacing;
+        const xSnap = rad * Math.cos(snappedAngle);
+        const ySnap = rad * Math.sin(snappedAngle);
+        spiralPoints.push({ x: xSnap, y: ySnap });
+      }
+      
+      // Draw the spiral (thin black line).
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      spiralPoints.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+      
+      // Compute cumulative arc lengths along the ideal spiral.
+      const arcLengths = computeArcLengths(idealSpiralPoints);
+      
+      // Compute circle centers along the ideal spiral.
+      let circleCenters = [];
+      circleCenters.push({ point: idealSpiralPoints[0], index: 0 });
+      let currentIndex = 0;
+      let iCircle = 1;
+      while (true) {
+        // Effective multiplier for circle i:
+        // For circle 0: multiplier = 1.
+        // For circle i (i>=1): multiplier = (rRate)^(i) * (rateOfRate)^(i - 1).
+        const multiplier = Math.pow(rRate, iCircle) * Math.pow(rateOfRate, iCircle - 1);
+        const targetDistance = s * multiplier * frac;
+        const next = findPointAtDistance(idealSpiralPoints, arcLengths, currentIndex, targetDistance);
+        if (!next) break;
+        circleCenters.push({ point: { x: next.x, y: next.y }, index: next.index });
+        currentIndex = next.index;
+        iCircle++;
+        if (currentIndex >= idealSpiralPoints.length - 1) break;
+      }
+      
+      // Apply the pivot transformation.
+      // The pivot slider is 1-based so we use pivotStartIndex as given.
+      // If pivotStartIndex is within our circleCenters array then fix that center and rotate subsequent centers.
+      if (circleCenters.length > pivotStartIndex) {
+        const pivot = circleCenters[pivotStartIndex].point;
+        const angleRad = pivotAngleDeg * Math.PI / 180;
+        for (let i = pivotStartIndex + 1; i < circleCenters.length; i++) {
+          const pt = circleCenters[i].point;
+          const dx = pt.x - pivot.x;
+          const dy = pt.y - pivot.y;
+          const rotatedX = pivot.x + dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+          const rotatedY = pivot.y + dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
+          circleCenters[i].point = { x: rotatedX, y: rotatedY };
+        }
+      }
+      
+      // Draw circles based on selected mode.
+      if (mode === "layered") {
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 0.5;
+        circleCenters.forEach((c, idx) => {
+          const multiplier = (idx === 0 ? 1 : Math.pow(rRate, idx) * Math.pow(rateOfRate, idx - 1));
+          const radius = s * multiplier;
+          ctx.beginPath();
+          ctx.arc(c.point.x, c.point.y, radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        });
+      } else if (mode === "full") {
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 0.5;
+        circleCenters.forEach((c, idx) => {
+          const multiplier = (idx === 0 ? 1 : Math.pow(rRate, idx) * Math.pow(rateOfRate, idx - 1));
+          const radius = s * multiplier;
+          ctx.beginPath();
+          ctx.arc(c.point.x, c.point.y, radius, 0, 2 * Math.PI);
+          ctx.stroke();
+        });
+      } else if (mode === "backwards") {
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 0.5;
+        for (let i = circleCenters.length - 1; i >= 0; i--) {
+          const c = circleCenters[i];
+          const multiplier = (i === 0 ? 1 : Math.pow(rRate, i) * Math.pow(rateOfRate, i - 1));
+          const radius = s * multiplier;
+          ctx.beginPath();
+          ctx.arc(c.point.x, c.point.y, radius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+      
+      // Draw tick marks at each circle center.
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      circleCenters.forEach(c => {
+        if (c.index <= 0 || c.index >= idealSpiralPoints.length - 1) return;
+        const A = idealSpiralPoints[c.index - 1];
+        const B = idealSpiralPoints[c.index];
+        const C = idealSpiralPoints[c.index + 1];
+        let tangentX = (C.x - A.x) / 2;
+        let tangentY = (C.y - A.y) / 2;
+        const len = Math.sqrt(tangentX * tangentX + tangentY * tangentY);
+        if (len === 0) return;
+        tangentX /= len;
+        tangentY /= len;
+        const normalX = -tangentY;
+        const normalY = tangentX;
+        const tickHalf = 2;
+        const startX = c.point.x - tickHalf * normalX;
+        const startY = c.point.y - tickHalf * normalY;
+        const endX = c.point.x + tickHalf * normalX;
+        const endY = c.point.y + tickHalf * normalY;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+      });
+      
+      // Re-plot the spiral on top so it's visible.
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      spiralPoints.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
+      ctx.stroke();
+      
+      // Now, compute the evolute from the ideal continuous spiral.
+      // Use central differences with dt = 1/m.
+      const dt = 1 / m;
+      let evolutePoints = [];
+      for (let i = 1; i < idealSpiralPoints.length - 1; i++) {
+        const A = idealSpiralPoints[i - 1];
+        const B = idealSpiralPoints[i];
+        const C = idealSpiralPoints[i + 1];
+        const xPrime = (C.x - A.x) / (2 * dt);
+        const yPrime = (C.y - A.y) / (2 * dt);
+        const xDoublePrime = (C.x - 2 * B.x + A.x) / (dt * dt);
+        const yDoublePrime = (C.y - 2 * B.y + A.y) / (dt * dt);
+        const denom = xPrime * yDoublePrime - yPrime * xDoublePrime;
+        if (Math.abs(denom) < 1e-6) continue;
+        const factor = (xPrime * xPrime + yPrime * yPrime) / denom;
+        const evoluteX = B.x - factor * yPrime;
+        const evoluteY = B.y + factor * xPrime;
+        evolutePoints.push({ x: evoluteX, y: evoluteY });
+      }
+      
+      // Plot the evolute last so it's visible.
+      ctx.strokeStyle = '#0000FF';
+      ctx.lineWidth = 0.5;
+      if (evolutePoints.length > 0) {
+        ctx.beginPath();
+        evolutePoints.forEach((pt, idx) => {
+          if (idx === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+      }
+      
+      // Draw overlay text.
+      ctx.font = "12px sans-serif";
+      ctx.fillStyle = "#000";
+      const overlayText = "Degrees: " + t + "  Spacing Exp: " + spacingExp + "  s: " + s + "  r: " + rRate + "  d: " + rateOfRate + "  X: " + frac + "  Mode: " + mode +
+                          "  Pivot Angle: " + pivotAngleDeg + "  Pivot Start: " + pivotStartIndex;
+      ctx.fillText(overlayText, -canvas.width / 2 + 5, -canvas.height / 2 + 15);
+      
+      ctx.restore();
+    }
+    
+    // Attach event listeners.
+    tSlider.addEventListener('input', draw);
+    spacingExpSlider.addEventListener('input', draw);
+    sizeSlider.addEventListener('input', draw);
+    rateSlider.addEventListener('input', draw);
+    rateOfRateSlider.addEventListener('input', draw);
+    fracSlider.addEventListener('input', draw);
+    pivotAngleSlider.addEventListener('input', draw);
+    pivotStartSlider.addEventListener('input', draw);
+    Array.from(document.getElementsByName('modeRadio')).forEach(radio => {
+      radio.addEventListener('change', draw);
+    });
+    
+    downloadBtn.addEventListener('click', () => {
+      const spacingExp = spacingExpSlider.value;
+      const link = document.createElement('a');
+      link.download = 'spacing_exponent_' + spacingExp + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+    
+    draw();
+  </script>
+</body>
+</html>
