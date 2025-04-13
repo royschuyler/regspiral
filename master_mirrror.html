@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Creative Spiral, Evolute, and Circles Generator</title>
+  <title>Spiral, Evolute, and Circles Generator</title>
   <style>
     body {
       font-family: sans-serif;
@@ -31,10 +31,10 @@
   </style>
 </head>
 <body>
-  <h1>Creative Spiral, Evolute, and Circles Generator</h1>
+  <h1>Spiral, Evolute, and Circles Generator</h1>
   <div class="container">
     <div class="controls">
-      <!-- Basic Parameter Sliders -->
+      <!-- Parameter sliders -->
       <div class="control">
         <label for="tSlider">Total Degrees (t):</label><br>
         <input type="range" id="tSlider" min="10" max="2000" value="450">
@@ -66,26 +66,7 @@
         <span id="fracValue">0.86</span>
       </div>
       
-      <!-- New Creative Oscillation Parameters -->
-      <div class="control">
-        <label for="oscAmpSlider">Oscillation Amplitude:</label><br>
-        <input type="range" id="oscAmpSlider" min="0" max="1" step="0.01" value="0.2">
-        <span id="oscAmpValue">0.2</span>
-      </div>
-      <div class="control">
-        <label for="oscFreqSlider">Oscillation Frequency:</label><br>
-        <input type="range" id="oscFreqSlider" min="0" max="20" step="0.1" value="6">
-        <span id="oscFreqValue">6</span>
-      </div>
-      
-      <!-- Eccentricity for Elliptical Coordinates -->
-      <div class="control">
-        <label for="eccSlider">Eccentricity (e):</label><br>
-        <input type="range" id="eccSlider" min="0" max="0.99" step="0.01" value="0">
-        <span id="eccValue">0</span>
-      </div>
-      
-      <!-- Display Mode, Download, and Mirror Controls -->
+      <!-- Display mode & download -->
       <div class="control">
         <label>Circle Display Mode:</label><br>
         <input type="radio" name="modeRadio" id="modeLayered" value="layered" checked>
@@ -98,6 +79,8 @@
       <div class="control">
         <button id="downloadBtn">Download Image</button>
       </div>
+      
+      <!-- Mirror control -->
       <div class="control">
         <label>Flip Image:</label><br>
         <input type="radio" name="mirrorRadio" id="mirrorOff" value="off" checked>
@@ -106,7 +89,7 @@
         <label for="mirrorOn">Mirrored</label>
       </div>
       
-      <!-- Center Offset Sliders -->
+      <!-- Center offset sliders -->
       <div class="control">
         <label for="centerXSlider">Center X Offset:</label><br>
         <input type="range" id="centerXSlider" min="-200" max="200" value="0">
@@ -126,7 +109,7 @@
   </div>
   
   <script>
-    // Get canvas and context.
+    // Get canvas and context
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     
@@ -134,16 +117,13 @@
     const n = 10000; // Number of radial grid lines.
     const m = 10000; // Number of sample points along the spiral.
     
-    // Get slider and control elements.
+    // Slider and control elements.
     const tSlider = document.getElementById('tSlider');
     const spacingExpSlider = document.getElementById('spacingExpSlider');
     const sizeSlider = document.getElementById('sizeSlider');
     const rateSlider = document.getElementById('rateSlider');
     const rateOfRateSlider = document.getElementById('rateOfRateSlider');
     const fracSlider = document.getElementById('fracSlider');
-    const oscAmpSlider = document.getElementById('oscAmpSlider');
-    const oscFreqSlider = document.getElementById('oscFreqSlider');
-    const eccSlider = document.getElementById('eccSlider');
     const centerSlider = document.getElementById('centerSlider');
     const centerXSlider = document.getElementById('centerXSlider');
     
@@ -153,9 +133,6 @@
     const rateValue = document.getElementById('rateValue');
     const rateOfRateValue = document.getElementById('rateOfRateValue');
     const fracValue = document.getElementById('fracValue');
-    const oscAmpValue = document.getElementById('oscAmpValue');
-    const oscFreqValue = document.getElementById('oscFreqValue');
-    const eccValue = document.getElementById('eccValue');
     const centerValue = document.getElementById('centerValue');
     const centerXValue = document.getElementById('centerXValue');
     
@@ -177,12 +154,12 @@
       return "off";
     }
     
-    // Helper: Euclidean distance.
+    // Helper: Compute Euclidean distance between two points.
     function distance(p, q) {
       return Math.sqrt((p.x - q.x) ** 2 + (p.y - q.y) ** 2);
     }
     
-    // Compute cumulative arc lengths for a set of points.
+    // Compute cumulative arc lengths for an array of points.
     function computeArcLengths(points) {
       let arc = [0];
       for (let i = 1; i < points.length; i++) {
@@ -191,7 +168,7 @@
       return arc;
     }
     
-    // Find a point along the arc given a target distance from a start index.
+    // Linear interpolation: find a point at a given arc-length difference.
     function findPointAtDistance(points, arc, startIndex, target) {
       const startArc = arc[startIndex];
       for (let i = startIndex + 1; i < arc.length; i++) {
@@ -217,9 +194,6 @@
       const rRate = parseFloat(rateSlider.value);
       const rateOfRate = parseFloat(rateOfRateSlider.value);
       const frac = parseFloat(fracSlider.value);
-      const oscAmp = parseFloat(oscAmpSlider.value);
-      const oscFreq = parseFloat(oscFreqSlider.value);
-      const ecc = parseFloat(eccSlider.value);
       const verticalOffset = parseFloat(centerSlider.value);
       const horizontalOffset = parseFloat(centerXSlider.value);
       const mode = getSelectedMode();
@@ -231,16 +205,10 @@
       rateValue.textContent = rRate;
       rateOfRateValue.textContent = rateOfRate;
       fracValue.textContent = frac;
-      oscAmpValue.textContent = oscAmp;
-      oscFreqValue.textContent = oscFreq;
-      eccValue.textContent = ecc;
       centerValue.textContent = verticalOffset;
       centerXValue.textContent = horizontalOffset;
       
-      // For elliptical coordinates: compute y-scaling factor.
-      const yScale = Math.sqrt(1 - ecc * ecc);
-      
-      // Increase maximum spiral radius.
+      // Increase maximum spiral radius so that more of the drawing appears.
       const maxR = (canvas.width / 2) * 1.5;
       
       // Clear canvas.
@@ -248,41 +216,35 @@
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Begin drawing by moving the origin to the adjusted center.
+      // Begin drawing by moving origin to the adjusted center (including both x- and y-offset).
       ctx.save();
       ctx.translate(canvas.width / 2 + horizontalOffset, canvas.height / 2 + verticalOffset);
       if (getMirrorMode() === "on") {
-        ctx.scale(-1, 1);
+        ctx.scale(-1, 1); // Mirror horizontally if selected.
       }
       
       const tRad = t * Math.PI / 180;
       const gridAngleSpacing = 2 * Math.PI / n;
       
-      // Build arrays of spiral points using the creative oscillatory modulation.
+      // Build arrays of ideal (continuous) and snapped spiral points.
       let idealSpiralPoints = [];
       let spiralPoints = [];
       for (let i = 0; i <= m; i++) {
         const fraction = i / m;
-        // Base radius using the power-law spacing.
-        const baseRad = Math.pow(fraction, spacingExp) * maxR;
-        // Apply oscillatory modulation.
-        const oscillation = 1 + oscAmp * Math.sin(oscFreq * fraction * 2 * Math.PI);
-        const rad = baseRad * oscillation;
+        const rad = Math.pow(fraction, spacingExp) * maxR;
         const thetaCont = fraction * tRad;
-        // For elliptical coordinates, scale the y-coordinate by yScale.
         const xIdeal = rad * Math.cos(thetaCont);
-        const yIdeal = rad * Math.sin(thetaCont) * yScale;
+        const yIdeal = rad * Math.sin(thetaCont);
         idealSpiralPoints.push({ x: xIdeal, y: yIdeal });
         
-        // Also compute a snapped version (grid aligned) for display.
         const k = Math.round(thetaCont / gridAngleSpacing);
         const snappedAngle = k * gridAngleSpacing;
         const xSnap = rad * Math.cos(snappedAngle);
-        const ySnap = rad * Math.sin(snappedAngle) * yScale;
+        const ySnap = rad * Math.sin(snappedAngle);
         spiralPoints.push({ x: xSnap, y: ySnap });
       }
       
-      // Draw the spiral curve.
+      // Draw the spiral path.
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 0.5;
       ctx.beginPath();
@@ -292,7 +254,7 @@
       });
       ctx.stroke();
       
-      // Compute cumulative arc lengths for the ideal spiral.
+      // Compute cumulative arc lengths along the ideal spiral.
       const arcLengths = computeArcLengths(idealSpiralPoints);
       
       // Compute circle centers along the ideal spiral.
@@ -311,7 +273,7 @@
         if (currentIndex >= idealSpiralPoints.length - 1) break;
       }
       
-      // Draw circles according to the selected mode.
+      // Draw circles (depending on mode).
       if (mode === "layered") {
         ctx.fillStyle = '#fff';
         ctx.strokeStyle = '#000';
@@ -349,7 +311,7 @@
         }
       }
       
-      // Draw tick marks on the spiral at each circle center.
+      // Draw tick marks on the spiral (at each circle center).
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 2;
       circleCenters.forEach(c => {
@@ -359,16 +321,20 @@
         const C = idealSpiralPoints[c.index + 1];
         let tangentX = (C.x - A.x) / 2;
         let tangentY = (C.y - A.y) / 2;
-        const len = Math.sqrt(tangentX*tangentX + tangentY*tangentY);
+        const len = Math.sqrt(tangentX * tangentX + tangentY * tangentY);
         if (len === 0) return;
         tangentX /= len;
         tangentY /= len;
         const normalX = -tangentY;
         const normalY = tangentX;
         const tickHalf = 2;
+        const startX = c.point.x - tickHalf * normalX;
+        const startY = c.point.y - tickHalf * normalY;
+        const endX = c.point.x + tickHalf * normalX;
+        const endY = c.point.y + tickHalf * normalY;
         ctx.beginPath();
-        ctx.moveTo(c.point.x - tickHalf * normalX, c.point.y - tickHalf * normalY);
-        ctx.lineTo(c.point.x + tickHalf * normalX, c.point.y + tickHalf * normalY);
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
         ctx.stroke();
       });
       
@@ -382,7 +348,7 @@
       });
       ctx.stroke();
       
-      // Compute the evolute using central differences.
+      // Compute the evolute (using central differences with dt = 1/m).
       const dt = 1 / m;
       let evolutePoints = [];
       for (let i = 1; i < idealSpiralPoints.length - 1; i++) {
@@ -395,13 +361,13 @@
         const yDoublePrime = (C.y - 2 * B.y + A.y) / (dt * dt);
         const denom = xPrime * yDoublePrime - yPrime * xDoublePrime;
         if (Math.abs(denom) < 1e-6) continue;
-        const factor = (xPrime*xPrime + yPrime*yPrime) / denom;
+        const factor = (xPrime * xPrime + yPrime * yPrime) / denom;
         const evoluteX = B.x - factor * yPrime;
         const evoluteY = B.y + factor * xPrime;
         evolutePoints.push({ x: evoluteX, y: evoluteY });
       }
       
-      // Draw the evolute curve.
+      // Draw the evolute path.
       ctx.strokeStyle = '#0000FF';
       ctx.lineWidth = 1;
       if (evolutePoints.length > 0) {
@@ -413,11 +379,12 @@
         ctx.stroke();
       }
       
-      // Draw tick marks on the evolute corresponding to circle centers.
+      // Draw tick marks on the evolute corresponding to the circle centers.
       ctx.strokeStyle = '#0000FF';
       ctx.lineWidth = 2;
       circleCenters.forEach(c => {
         if (c.index <= 0 || c.index >= idealSpiralPoints.length - 1) return;
+        // For the same circle center index, re-calculate the evolute point.
         const A = idealSpiralPoints[c.index - 1];
         const B = idealSpiralPoints[c.index];
         const C = idealSpiralPoints[c.index + 1];
@@ -427,41 +394,37 @@
         const yDoublePrime = (C.y - 2 * B.y + A.y) / (dt * dt);
         const denom = xPrime * yDoublePrime - yPrime * xDoublePrime;
         if (Math.abs(denom) < 1e-6) return;
-        const factor = (xPrime*xPrime + yPrime*yPrime) / denom;
+        const factor = (xPrime * xPrime + yPrime * yPrime) / denom;
         const evoluteX = B.x - factor * yPrime;
         const evoluteY = B.y + factor * xPrime;
         
+        // Use same normal as for the curve tick marks.
         let tangentX = (C.x - A.x) / 2;
         let tangentY = (C.y - A.y) / 2;
-        const len = Math.sqrt(tangentX*tangentX + tangentY*tangentY);
+        const len = Math.sqrt(tangentX * tangentX + tangentY * tangentY);
         if (len === 0) return;
         tangentX /= len;
         tangentY /= len;
         const normalX = -tangentY;
         const normalY = tangentX;
         const tickHalf = 2;
+        const startX = evoluteX - tickHalf * normalX;
+        const startY = evoluteY - tickHalf * normalY;
+        const endX = evoluteX + tickHalf * normalX;
+        const endY = evoluteY + tickHalf * normalY;
         ctx.beginPath();
-        ctx.moveTo(evoluteX - tickHalf * normalX, evoluteY - tickHalf * normalY);
-        ctx.lineTo(evoluteX + tickHalf * normalX, evoluteY + tickHalf * normalY);
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
         ctx.stroke();
       });
       
       // Restore transformation.
       ctx.restore();
       
-      // Draw the overlay header text in fixed coordinates.
+      // Draw the overlay header text in fixed coordinates at the top.
       ctx.font = "12px sans-serif";
       ctx.fillStyle = "#000";
-      const overlayText = "Degrees: " + t +
-                          "  f: " + spacingExp +
-                          "  s: " + s +
-                          "  r: " + rRate +
-                          "  d: " + rateOfRate +
-                          "  X: " + frac +
-                          "  OscAmp: " + oscAmp +
-                          "  OscFreq: " + oscFreq +
-                          "  e: " + ecc +
-                          "  Mode: " + mode;
+      const overlayText = "Degrees: " + t + "  Spacing Exp: " + spacingExp + "  s: " + s + "  r: " + rRate + "  d: " + rateOfRate + "  X: " + frac + "  Mode: " + mode;
       ctx.fillText(overlayText, 5, 15);
     }
     
@@ -472,13 +435,14 @@
     rateSlider.addEventListener('input', draw);
     rateOfRateSlider.addEventListener('input', draw);
     fracSlider.addEventListener('input', draw);
-    oscAmpSlider.addEventListener('input', draw);
-    oscFreqSlider.addEventListener('input', draw);
-    eccSlider.addEventListener('input', draw);
     centerSlider.addEventListener('input', draw);
     centerXSlider.addEventListener('input', draw);
-    Array.from(modeRadios).forEach(radio => radio.addEventListener('change', draw));
-    Array.from(mirrorRadios).forEach(radio => radio.addEventListener('change', draw));
+    Array.from(modeRadios).forEach(radio => {
+      radio.addEventListener('change', draw);
+    });
+    Array.from(mirrorRadios).forEach(radio => {
+      radio.addEventListener('change', draw);
+    });
     
     downloadBtn.addEventListener('click', () => {
       const spacingExp = spacingExpSlider.value;

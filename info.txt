@@ -18,3 +18,70 @@ Now imagine a a circle drawn where the spiral starts with it's center at the sta
       <input type="range" id="rateSlider" min="1" max="1.4" step="0.02" value="1.2">
       <span id="rateValue">1.5</span>
     </div>
+
+I want to make the following updates. 1) create another slider var that determines the number of circles that will appear starting from smallest. eg. if there are 8 circles, it will stop plotting after the 8th circle is drawn. 2) Keep the app the same for this line we'll call line 1.
+3) Create a new line in addition to line 1 called line 2. The initial Circle Size for line 2 will be the size if the "last circle" from line 1 and share the same center. 4) create another slider var that determines the "tilt" or "radial starting point" of the curve. 5) create seperate sliders for lines 1 and 2. Lets make the sliders smaller and organized by line #.
+
+Pated below is my app. I want to implement another slider var that will "pivot" or "rotate" the spiral at circle[i]'s center (it may make more sense to apprach it from that point in the spiral) by a number of degrees (-180 to 180 default: 0, increment 1). This next part is the most important - I want the circles plotted to be on the pivoted spiral path. So, I want them to move with the pivoted spiral. So, we'll need a total of 2 new sliders 1) the amount of degrees  rotated 2) which number circle center to start the pivot. Let's start the "circle count" at 1 (the smallest circle) and increment up. Please keep in mind that I may want to add another pivot after this, if succesful.
+
+Pasted below is my app. I want to make the following change. Currently, the spiral starts at a point and grows, as do the circles. I want to 1) number the circles. 2) have the spiral start and grow like it does currently, then continue a spiral, but, at a point I can dictate via a slier var, "shirnk" back into another "pole" of the spiral. 3) Have the circles grow, like they are currently, but have the ability to have them begin to decrease at a new rate I dictate via a slider bar starting on circle number x, that I dictate via a slider bar.
+
+
+I want a spiral generator with slider variable bars.
+The spiral should start (pole 1) at a point say (0,1), and end (pole 2) at a point, say (0,-1). Let's keep it a unit spiral. The spiral should grow logarythmically (by that I mean more loops cloeser to the center of each pole) The spiral should grow for a {slider var} amount of degrees (min 90, max 5,000, default: 720, increment: 2), then do the inverse, or "shrink" back down to the other pole at a {slider var} amount of degrees (min 90, max 5,000, default: 720, increment: 2). THere should be a Spacing Exponent (f) like so      <div class="control">
+        <label for="spacingExpSlider">Spacing Exponent (f):</label><br>
+        <input type="range" id="spacingExpSlider" min="1" max="20" step="0.25" value="2.75">
+        <span id="spacingExpValue">2.75</span>
+      </div>
+
+That determines how "tight" the spiral is at the beginning and end of each pole. THere should be seperate slider vars for each pole, but it should be one continuous, smooth spiral. There should be a canvas tag and a downloadable button
+
+
+1) Here are the new default slider vars:
+      <div class="control">
+        <label for="growthSlider">Growth Degrees (Pole 1):</label><br>
+        <input type="range" id="growthSlider" min="90" max="660" step="2" value="360">
+        <span id="growthValue">360</span>°
+      </div>
+      <div class="control">
+        <label for="shrinkSlider">Shrink Degrees (Pole 2):</label><br>
+        <input type="range" id="shrinkSlider" min="90" max="660" step="2" value="360">
+        <span id="shrinkValue">360</span>°
+      </div>
+      <div class="control">
+        <label for="joinSlider">Join Fraction (0–1):</label><br>
+        <input type="range" id="joinSlider" min="0" max="1" step="0.01" value="0.5">
+        <span id="joinValue">0.50</span>
+      </div>
+      <div class="control">
+        <label for="spacingExpSlider">Spacing Exponent (f):</label><br>
+        <input type="range" id="spacingExpSlider" min=".0001" max="3" step="0.01" value=".2">
+        <span id="spacingExpValue">0.2</span>
+      </div>
+
+
+
+2) I'd like to introduce a new feature. The concept is to plot circles of increasing size by a variable rate, with the center falling on the spiral and a slider var controlling the start size and overlap point. I already have this logic worked out in another app. I amgoing to pasteit below. Please use the circle logic and the "full circle, backwards and layered" parts as well as any other logic needed for our new app we're working on now. But please leave the current spiral logic because it's great! 
+
+Power-Law Transformation:
+You might change the linear mapping of the fraction to the angle by using a power law. For example, instead of
+theta = fraction * totalAngle,
+use
+theta = totalAngle * fraction^alpha,
+where an exponent α < 1 will pack more of the rotation near the beginning. This is similar to what you already do for the radius, but applied to theta.
+
+Logarithmic Scaling:
+A logarithmic function can yield a rapid increase at first that then slows down. One form could be:
+theta = totalAngle * (log(1 + k * fraction) / log(1 + k)),
+where k is a slider-controlled parameter. Here, for a given fraction (0 to 1), the logarithm ensures that the angle increases quickly at first and then levels off.
+
+Exponential Approach:
+You can also try an exponential formulation such as:
+theta = totalAngle * (1 - exp(-k * fraction)) / (1 - exp(-k)),
+which again uses a slider parameter k to adjust how quickly the angle ramps up at the start and then saturates toward the end.
+
+Sigmoidal (Logistic) Transformation:
+Although a bit more complex, a logistic function can be used to control the progression. For example, a scaled sigmoid function might look like:
+theta = totalAngle * (sigmoid(k*(fraction - 0.5)) - sigmoid(-k/2)) / (sigmoid(k/2) - sigmoid(-k/2)),
+where the sigmoid function (e.g., 1/(1+exp(–x))) is used to create a smoother transition with more control around the mid-point.
+
